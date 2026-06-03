@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>НБК Монитор — Базовая ставка & TONIA</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:12px}
+
+:root{
+  --bg:#ffffff;
+  --bg2:#f6f8fa;
+  --bg3:#eaeef2;
+  --border:rgba(0,0,0,0.08);
+  --text:#1f2328;
+  --muted:#636c76;
+  --dim:#afb8c1;
+  --blue:#0969da;
+  --green:#1a7f37;
+  --red:#d1242f;
+  --amber:#9a6700;
+  --bg-blue:#ddf4ff;
+  --bg-green:#dafbe1;
+  --bg-red:#ffebe9;
+  --bg-amber:#fff8c5;
+}
+
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#0d1117;
+    --bg2:#161b22;
+    --bg3:#1c2128;
+    --border:rgba(255,255,255,0.08);
+    --text:#e6edf3;
+    --muted:#8b949e;
+    --dim:#484f58;
+    --blue:#388bfd;
+    --green:#3fb950;
+    --red:#f85149;
+    --amber:#d29922;
+    --bg-blue:rgba(56,139,253,0.1);
+    --bg-green:rgba(63,185,80,0.1);
+    --bg-red:rgba(248,81,73,0.1);
+    --bg-amber:rgba(210,153,34,0.1);
+  }
+}
+
+body{background:var(--bg);color:var(--text);min-height:100vh}
+
+/* HEADER */
+.hdr{background:var(--bg2);border-bottom:1px solid var(--border);padding:7px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;position:sticky;top:0;z-index:100}
+.logo{font-size:12px;font-weight:700;color:var(--blue);letter-spacing:.06em}
+.hdr-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;border:1px solid}
+.b-red{background:var(--bg-red);color:var(--red);border-color:rgba(209,36,47,.2)}
+.b-green{background:var(--bg-green);color:var(--green);border-color:rgba(26,127,55,.2)}
+.b-blue{background:var(--bg-blue);color:var(--blue);border-color:rgba(9,105,218,.2)}
+.b-amber{background:var(--bg-amber);color:var(--amber);border-color:rgba(154,103,0,.2)}
+.hdr-right{display:flex;align-items:center;gap:6px}
+.upd{font-size:10px;color:var(--muted)}
+.btn{font-size:10px;padding:3px 9px;background:var(--bg);border:1px solid var(--border);color:var(--muted);border-radius:4px;cursor:pointer;font-family:inherit}
+.btn:hover{border-color:var(--blue);color:var(--blue)}
+
+/* TICKERS */
+.tickers{display:grid;grid-template-columns:repeat(6,1fr);border-bottom:1px solid var(--border)}
+.tk{padding:9px 12px;border-right:1px solid var(--border);position:relative}
+.tk:last-child{border-right:none}
+.tk-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.tk-val{font-size:21px;font-weight:600;line-height:1.1}
+.tk-sub{font-size:9px;color:var(--muted);margin-top:2px}
+.tk-src{font-size:8px;color:var(--dim);margin-top:2px}
+.tk-spark{height:26px;margin-top:5px;position:relative}
+.dot-live::after{content:'●';font-size:7px;color:var(--green);position:absolute;top:7px;right:9px;animation:blink 2s infinite}
+.dot-manual::after{content:'○';font-size:7px;color:var(--dim);position:absolute;top:7px;right:9px}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* MAIN GRID */
+.mid{display:grid;grid-template-columns:1fr 210px;border-bottom:1px solid var(--border)}
+.chart-panel{padding:10px 12px;border-right:1px solid var(--border)}
+.ph{font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center}
+.leg{display:flex;gap:12px;margin-bottom:7px;flex-wrap:wrap}
+.leg span{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--muted)}
+.ld{width:14px;height:2px;border-radius:1px;display:inline-block;flex-shrink:0}
+.cw{position:relative;width:100%;height:210px}
+
+/* CORRIDOR */
+.corridor{margin-top:8px;padding:7px 9px;background:var(--bg2);border:1px solid var(--border);border-radius:5px}
+.cor-lbl{font-size:9px;color:var(--muted);margin-bottom:5px}
+.cor-bar{position:relative;height:8px;border-radius:4px;background:var(--bg3);margin:4px 0;overflow:visible}
+.cor-fill{position:absolute;left:0;top:0;width:100%;height:100%;border-radius:4px;background:linear-gradient(to right,rgba(26,127,55,.15),rgba(9,105,218,.15),rgba(209,36,47,.15))}
+.cor-ptr{position:absolute;top:-4px;height:16px;border-radius:2px}
+.cor-labs{display:flex;justify-content:space-between;font-size:9px;color:var(--dim);margin-top:3px}
+
+/* SIDEBAR */
+.sidebar{padding:0}
+.kv{display:flex;justify-content:space-between;align-items:center;padding:5px 10px;border-bottom:1px solid var(--border);font-size:11px}
+.kv:last-child{border-bottom:none}
+.kl{color:var(--muted);font-size:10px}
+.kv-v{font-weight:600}
+.next-box{margin:6px 10px;padding:6px 8px;background:var(--bg-amber);border:1px solid rgba(154,103,0,.2);border-radius:4px;display:flex;justify-content:space-between;align-items:center}
+.next-date{font-weight:700;color:var(--amber);font-size:13px}
+
+/* BOTTOM */
+.bot{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--border)}
+.bot-cell{padding:9px 11px;border-right:1px solid var(--border)}
+.bot-cell:last-child{border-right:none}
+.ev{display:flex;gap:5px;align-items:center;padding:3px 0;border-bottom:1px solid var(--border);font-size:10px}
+.ev:last-child{border-bottom:none}
+.ev-d{color:var(--dim);min-width:66px;font-size:9px}
+.ev-r{font-weight:600;min-width:40px}
+.ev-c{font-size:9px;min-width:44px}
+.ev-t{font-size:9px;color:var(--dim)}
+
+/* SIGNALS */
+.sig{border-radius:4px;padding:5px 8px;margin-bottom:4px;border:1px solid;font-size:10px;line-height:1.45}
+.sig-t{font-weight:600;font-size:9px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:1px}
+.s-green{background:var(--bg-green);border-color:rgba(26,127,55,.2);color:var(--green)}
+.s-red{background:var(--bg-red);border-color:rgba(209,36,47,.2);color:var(--red)}
+.s-amber{background:var(--bg-amber);border-color:rgba(154,103,0,.2);color:var(--amber)}
+.s-blue{background:var(--bg-blue);border-color:rgba(9,105,218,.2);color:var(--blue)}
+.cws{position:relative;width:100%;height:68px;margin-top:5px}
+.cwsc{position:relative;width:100%;height:82px;margin-top:5px}
+.sc-labs{display:flex;gap:8px;margin-top:3px;font-size:9px;flex-wrap:wrap}
+
+/* HEATMAP */
+.hm{display:grid;grid-template-columns:26px repeat(4,1fr);gap:2px;font-size:8px}
+.hm-yr{color:var(--muted);display:flex;align-items:center;font-size:9px}
+.hm-h{text-align:center;color:var(--dim);font-size:9px}
+.hm-c{border-radius:2px;padding:3px 1px;text-align:center;font-weight:600;font-size:8px}
+.hm-leg{display:flex;gap:3px;align-items:center;margin-top:5px;font-size:8px;color:var(--dim)}
+.hm-sq{width:8px;height:6px;border-radius:1px;display:inline-block}
+
+/* EDIT PANEL */
+.edit{position:fixed;right:0;top:0;bottom:0;width:280px;background:var(--bg);border-left:1px solid var(--border);padding:14px;overflow-y:auto;transform:translateX(100%);transition:transform .2s;z-index:200;box-shadow:-4px 0 12px rgba(0,0,0,.1)}
+.edit.open{transform:translateX(0)}
+.edit-title{font-size:12px;font-weight:700;color:var(--blue);margin-bottom:12px}
+.edit-x{position:absolute;top:10px;right:12px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px}
+.eg{margin-bottom:10px}
+.el{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.ei{width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:5px 7px;border-radius:3px;font-size:11px;font-family:inherit}
+.ei:focus{outline:none;border-color:var(--blue)}
+.es{width:100%;padding:7px;background:var(--blue);border:none;color:#fff;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;margin-top:6px}
+.en{font-size:9px;color:var(--dim);margin-top:6px;line-height:1.6}
+
+/* FOOTER */
+.footer{padding:5px 14px;background:var(--bg2);border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:9px;color:var(--dim);flex-wrap:wrap;gap:3px}
+
+@media(max-width:800px){
+  .tickers{grid-template-columns:repeat(3,1fr)}
+  .mid{grid-template-columns:1fr}
+  .bot{grid-template-columns:1fr}
+  .sidebar{border-top:1px solid var(--border)}
+}
+</style>
+</head>
+<body>
+
+<!-- EDIT PANEL -->
+<div class="edit" id="ep">
+  <button class="edit-x" onclick="toggleEdit()">✕</button>
+  <div class="edit-title">Обновить данные</div>
+  <div class="eg"><div class="el">Базовая ставка НБК (%)</div><input class="ei" id="i-rate" type="number" step="0.25" value="18.00"><div class="en">После каждого заседания КДКП. Источник: nationalbank.kz</div></div>
+  <div class="eg"><div class="el">TONIA (%)</div><input class="ei" id="i-tonia" type="number" step="0.01" value="17.97"><div class="en">Ежедневно. Источник: kase.kz</div></div>
+  <div class="eg"><div class="el">Инфляция ИПЦ (%)</div><input class="ei" id="i-infl" type="number" step="0.1" value="11.0"><div class="en">Ежемесячно. Источник: stat.gov.kz</div></div>
+  <div class="eg"><div class="el">USD / KZT (офиц. НБК)</div><input class="ei" id="i-usd" type="number" step="0.01" value="485.55"></div>
+  <div class="eg"><div class="el">Нефть Brent (USD/барр.)</div><input class="ei" id="i-brent" type="number" step="0.01" value="96.57"><div class="en">Источник: tradingeconomics.com</div></div>
+  <div class="eg"><div class="el">Дата обновления</div><input class="ei" id="i-date" type="date"></div>
+  <button class="es" onclick="saveData()">Сохранить и обновить</button>
+  <div class="en" style="margin-top:10px"><b>Быстрые источники:</b><br>· НБК ставка: nationalbank.kz<br>· TONIA: kase.kz → Индексы → TONIA<br>· Инфляция: stat.gov.kz<br>· USD/KZT: nationalbank.kz/ru/exchangerates<br>· Brent: tradingeconomics.com/commodity/brent-crude-oil</div>
+</div>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-left">
+    <span class="logo">НБК МОНИТОР</span>
+    <span class="badge b-red" id="h-rate">СТАВКА 18.00%</span>
+    <span class="badge b-green" id="h-tonia">TONIA 17.97%</span>
+    <span class="badge b-blue" id="h-spread">СПРЕД −0.03</span>
+    <span class="badge b-amber">СЛЕД. КДКП 05.06.2026</span>
+  </div>
+  <div class="hdr-right">
+    <span class="upd" id="upd">—</span>
+    <button class="btn" onclick="toggleEdit()">✎ Данные</button>
+    <button class="btn" onclick="fetchUSD()">⟳ Загрузить курс</button>
+  </div>
+</div>
+
+<!-- TICKERS -->
+<div class="tickers">
+  <div class="tk dot-manual">
+    <div class="tk-lbl">Базовая ставка</div>
+    <div class="tk-val" style="color:var(--red)" id="t-rate">18.00%</div>
+    <div class="tk-sub">с 01.12.2025 · коридор 17–19%</div>
+    <canvas class="tk-spark" id="s1"></canvas>
+    <div class="tk-src">НБК · ручное обновление</div>
+  </div>
+  <div class="tk dot-manual">
+    <div class="tk-lbl">TONIA (KASE)</div>
+    <div class="tk-val" style="color:var(--green)" id="t-tonia">17.97%</div>
+    <div class="tk-sub" id="t-spr-sub">спред −0.03 п.п.</div>
+    <canvas class="tk-spark" id="s2"></canvas>
+    <div class="tk-src">KASE · ручное обновление</div>
+  </div>
+  <div class="tk dot-manual">
+    <div class="tk-lbl">Инфляция ИПЦ</div>
+    <div class="tk-val" style="color:var(--red)" id="t-infl">~11.0%</div>
+    <div class="tk-sub">цель НБК: 5±1%</div>
+    <canvas class="tk-spark" id="s3"></canvas>
+    <div class="tk-src">Бюро нацстатистики</div>
+  </div>
+  <div class="tk dot-live">
+    <div class="tk-lbl">USD / KZT</div>
+    <div class="tk-val" id="t-usd">485.55</div>
+    <div class="tk-sub" id="t-usd-sub">офиц. НБК</div>
+    <canvas class="tk-spark" id="s4"></canvas>
+    <div class="tk-src" id="t-usd-src">загружается...</div>
+  </div>
+  <div class="tk dot-manual">
+    <div class="tk-lbl">Нефть Brent</div>
+    <div class="tk-val" id="t-brent">$96.57</div>
+    <div class="tk-sub" id="t-brent-sub">28.05.2026 · ICE</div>
+    <canvas class="tk-spark" id="s5"></canvas>
+    <div class="tk-src">Trading Economics / ICE</div>
+  </div>
+  <div class="tk dot-manual">
+    <div class="tk-lbl">Реальная ставка</div>
+    <div class="tk-val" style="color:var(--green)" id="t-real">+7.0%</div>
+    <div class="tk-sub" id="t-real-sub">18% − 11% инфл.</div>
+    <canvas class="tk-spark" id="s6"></canvas>
+    <div class="tk-src">Расчётный показатель</div>
+  </div>
+</div>
+
+<!-- MID -->
+<div class="mid">
+  <div class="chart-panel">
+    <div class="ph">
+      <span>Базовая ставка НБК — все решения КДКП (2015–2026)</span>
+      <span style="color:var(--dim);font-size:8px">89 решений · nationalbank.kz</span>
+    </div>
+    <div class="leg">
+      <span><span class="ld" style="background:var(--blue)"></span>Базовая ставка</span>
+      <span><span class="ld" style="background:var(--red);opacity:.5"></span>Инфляция</span>
+    </div>
+    <div class="cw"><canvas id="mainChart"></canvas></div>
+    <div class="corridor">
+      <div class="cor-lbl">Положение TONIA в коридоре НБК · Источник: KASE</div>
+      <div class="cor-bar">
+        <div class="cor-fill"></div>
+        <div class="cor-ptr" id="t-ptr" style="width:3px;background:var(--green)"></div>
+        <div class="cor-ptr" id="b-ptr" style="width:2px;background:var(--blue);opacity:.6"></div>
+      </div>
+      <div class="cor-labs">
+        <span id="c-low">17.00% нижняя</span>
+        <span style="color:var(--green)" id="c-tonia">▼ TONIA 17.97%</span>
+        <span style="color:var(--blue)" id="c-base">BASE 18.00%</span>
+        <span id="c-high">19.00% верхняя</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="ph" style="padding:7px 10px;border-bottom:1px solid var(--border);margin-bottom:0"><span>Метрики</span></div>
+    <div class="kv"><span class="kl">Базовая ставка</span><span class="kv-v" style="color:var(--red)" id="m-rate">18.00%</span></div>
+    <div class="kv"><span class="kl">TONIA</span><span class="kv-v" style="color:var(--green)" id="m-tonia">17.97%</span></div>
+    <div class="kv"><span class="kl">Спред</span><span class="kv-v" style="color:var(--green)" id="m-spread">−0.03 п.п.</span></div>
+    <div class="kv"><span class="kl">Коридор</span><span class="kv-v" id="m-cor">17–19%</span></div>
+    <div class="kv"><span class="kl">Max TONIA 52н</span><span class="kv-v">18.57%</span></div>
+    <div class="kv"><span class="kl">Min TONIA 52н</span><span class="kv-v">14.96%</span></div>
+    <div class="kv"><span class="kl">Инфляция</span><span class="kv-v" style="color:var(--red)" id="m-infl">~11.0%</span></div>
+    <div class="kv"><span class="kl">Цель инфляции</span><span class="kv-v">5 ± 1%</span></div>
+    <div class="kv"><span class="kl">Реальная ставка</span><span class="kv-v" style="color:var(--green)" id="m-real">+7.0 п.п.</span></div>
+    <div class="kv"><span class="kl">USD/KZT</span><span class="kv-v" id="m-usd">485.55</span></div>
+    <div class="kv"><span class="kl">Brent</span><span class="kv-v" id="m-brent">$96.57</span></div>
+    <div class="kv"><span class="kl">Решений КДКП</span><span class="kv-v">89 с 2015</span></div>
+    <div class="next-box">
+      <span style="font-size:9px;color:var(--amber)">След. заседание КДКП</span>
+      <span class="next-date">05.06.2026</span>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM -->
+<div class="bot">
+  <div class="bot-cell">
+    <div class="ph">Последние решения КДКП · НБК</div>
+    <div class="ev"><span class="ev-d">27.04.2026</span><span class="ev-r">18.00%</span><span class="ev-c" style="color:var(--muted)">— б/изм</span><span class="ev-t">TONIA 17.97</span></div>
+    <div class="ev"><span class="ev-d">10.03.2026</span><span class="ev-r">18.00%</span><span class="ev-c" style="color:var(--muted)">— б/изм</span><span class="ev-t">TONIA 17.97</span></div>
+    <div class="ev"><span class="ev-d">26.01.2026</span><span class="ev-r">18.00%</span><span class="ev-c" style="color:var(--muted)">— б/изм</span><span class="ev-t">TONIA 17.90</span></div>
+    <div class="ev"><span class="ev-d">01.12.2025</span><span class="ev-r" style="color:var(--red)">18.00%</span><span class="ev-c" style="color:var(--red)">▲ +1.50</span><span class="ev-t">TONIA 17.90</span></div>
+    <div class="ev"><span class="ev-d">13.10.2025</span><span class="ev-r" style="color:var(--red)">18.00%</span><span class="ev-c" style="color:var(--red)">▲ +1.50</span><span class="ev-t">TONIA 17.85</span></div>
+    <div class="ev"><span class="ev-d">02.09.2025</span><span class="ev-r">16.50%</span><span class="ev-c" style="color:var(--muted)">— б/изм</span><span class="ev-t">TONIA 16.30</span></div>
+    <div class="ev"><span class="ev-d">11.03.2025</span><span class="ev-r" style="color:var(--red)">16.50%</span><span class="ev-c" style="color:var(--red)">▲ +1.25</span><span class="ev-t">TONIA 16.30</span></div>
+    <div class="ev"><span class="ev-d">20.01.2025</span><span class="ev-r">15.25%</span><span class="ev-c" style="color:var(--muted)">— б/изм</span><span class="ev-t">TONIA 15.10</span></div>
+    <div class="ev"><span class="ev-d">02.12.2024</span><span class="ev-r" style="color:var(--red)">15.25%</span><span class="ev-c" style="color:var(--red)">▲ +1.00</span><span class="ev-t">TONIA 15.10</span></div>
+    <div class="ev"><span class="ev-d">14.10.2024</span><span class="ev-r">14.25%</span><span class="ev-c" style="color:var(--muted)">— б/изм</span><span class="ev-t">TONIA 14.10</span></div>
+    <div class="ev"><span class="ev-d">03.06.2024</span><span class="ev-r" style="color:var(--green)">14.50%</span><span class="ev-c" style="color:var(--green)">▼ −0.25</span><span class="ev-t">TONIA 14.35</span></div>
+    <div class="ev"><span class="ev-d">26.02.2024</span><span class="ev-r" style="color:var(--green)">14.75%</span><span class="ev-c" style="color:var(--green)">▼ −0.50</span><span class="ev-t">TONIA 14.60</span></div>
+    <div class="ev"><span class="ev-d">22.01.2024</span><span class="ev-r" style="color:var(--green)">15.25%</span><span class="ev-c" style="color:var(--green)">▼ −1.50</span><span class="ev-t">TONIA 15.10</span></div>
+    <div class="ev"><span class="ev-d">27.11.2023</span><span class="ev-r" style="color:var(--green)">15.75%</span><span class="ev-c" style="color:var(--green)">▼ −0.25</span><span class="ev-t">TONIA 15.60</span></div>
+    <div class="ev"><span class="ev-d">09.10.2023</span><span class="ev-r" style="color:var(--green)">16.00%</span><span class="ev-c" style="color:var(--green)">▼ −0.50</span><span class="ev-t">TONIA 15.85</span></div>
+  </div>
+
+  <div class="bot-cell">
+    <div class="ph">Сигналы ликвидности</div>
+    <div class="sig s-green"><div class="sig-t">Спред нейтральный −0.03 п.п.</div>TONIA у центра коридора. Трансмиссия ДКП работает нормально.</div>
+    <div class="sig s-red"><div class="sig-t">Инфляция выше цели на 6 п.п.</div>~11% vs цель 5%. Основная причина удержания ставки 18%.</div>
+    <div class="sig s-amber"><div class="sig-t">3 заседания без изменений</div>Янв–Апр 2026: пауза. Следующее 05.06 — рынок ждёт сигнал.</div>
+    <div class="sig s-blue"><div class="sig-t">Brent $96.57 — Ормузский конфликт</div>Нефть +52% г/г. Проинфляционный риск для тенге.</div>
+    <div class="ph" style="margin-top:8px">Спред TONIA − ставка по годам · KASE</div>
+    <div class="cws"><canvas id="sprChart"></canvas></div>
+  </div>
+
+  <div class="bot-cell">
+    <div class="ph">Тепловая карта ставки · НБК</div>
+    <div class="hm" id="hm">
+      <div></div><div class="hm-h">Q1</div><div class="hm-h">Q2</div><div class="hm-h">Q3</div><div class="hm-h">Q4</div>
+    </div>
+    <div class="hm-leg">
+      <span>низкая</span>
+      <span class="hm-sq" style="background:#0d4429"></span>
+      <span class="hm-sq" style="background:#1a7f37"></span>
+      <span class="hm-sq" style="background:#7d4e17"></span>
+      <span class="hm-sq" style="background:#993c1d"></span>
+      <span class="hm-sq" style="background:#7d1e1e"></span>
+      <span>высокая</span>
+    </div>
+    <div class="ph" style="margin-top:8px">Сценарии прогноза 2026–2027</div>
+    <div class="cwsc"><canvas id="scChart"></canvas></div>
+    <div class="sc-labs">
+      <span style="color:var(--blue)">— Базовый 15–16%</span>
+      <span style="color:var(--green)">— Опт. 12–13%</span>
+      <span style="color:var(--red)">— Пес. 18%+</span>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <span><b>Источники:</b> НБК nationalbank.kz · KASE kase.kz · Бюро нацстатистики stat.gov.kz · Trading Economics / ICE · ● авто ○ ручное</span>
+  <span>НБК Монитор v6 · 2026</span>
+</div>
+
+<script>
+const DEF={rate:18,tonia:17.97,infl:11,usd:485.55,brent:96.57,date:new Date().toISOString().split('T')[0]};
+function load(){try{const s=localStorage.getItem('nbk');return s?{...DEF,...JSON.parse(s)}:DEF}catch(e){return DEF}}
+let D=load();
+
+function saveData(){
+  D={
+    rate:parseFloat(document.getElementById('i-rate').value)||DEF.rate,
+    tonia:parseFloat(document.getElementById('i-tonia').value)||DEF.tonia,
+    infl:parseFloat(document.getElementById('i-infl').value)||DEF.infl,
+    usd:parseFloat(document.getElementById('i-usd').value)||DEF.usd,
+    brent:parseFloat(document.getElementById('i-brent').value)||DEF.brent,
+    date:document.getElementById('i-date').value||DEF.date
+  };
+  localStorage.setItem('nbk',JSON.stringify(D));
+  render(D);
+  toggleEdit();
+}
+
+function toggleEdit(){document.getElementById('ep').classList.toggle('open')}
+
+function render(d){
+  const spr=(d.tonia-d.rate),sprStr=(spr>=0?'+':'')+spr.toFixed(2);
+  const real=(d.rate-d.infl),realStr=(real>=0?'+':'')+real.toFixed(1);
+  const lo=d.rate-1,hi=d.rate+1;
+  const pct=((d.tonia-lo)/(hi-lo)*100).toFixed(1);
+
+  document.getElementById('h-rate').textContent='СТАВКА '+d.rate.toFixed(2)+'%';
+  document.getElementById('h-tonia').textContent='TONIA '+d.tonia.toFixed(2)+'%';
+  document.getElementById('h-spread').textContent='СПРЕД '+sprStr;
+
+  document.getElementById('t-rate').textContent=d.rate.toFixed(2)+'%';
+  document.getElementById('t-tonia').textContent=d.tonia.toFixed(2)+'%';
+  document.getElementById('t-spr-sub').textContent='спред '+sprStr+' п.п.';
+  document.getElementById('t-infl').textContent='~'+d.infl.toFixed(1)+'%';
+  document.getElementById('t-usd').textContent=d.usd.toFixed(2);
+  document.getElementById('t-brent').textContent='$'+d.brent.toFixed(2);
+  document.getElementById('t-real').textContent=realStr+'%';
+  document.getElementById('t-real-sub').textContent=d.rate+'% − '+d.infl+'% инфл.';
+  document.getElementById('t-brent-sub').textContent=d.date+' · ICE';
+
+  document.getElementById('m-rate').textContent=d.rate.toFixed(2)+'%';
+  document.getElementById('m-tonia').textContent=d.tonia.toFixed(2)+'%';
+  document.getElementById('m-spread').textContent=sprStr+' п.п.';
+  document.getElementById('m-spread').style.color=spr>=0?'var(--red)':'var(--green)';
+  document.getElementById('m-cor').textContent=lo.toFixed(2)+'–'+hi.toFixed(2)+'%';
+  document.getElementById('m-infl').textContent='~'+d.infl.toFixed(1)+'%';
+  document.getElementById('m-real').textContent=realStr+' п.п.';
+  document.getElementById('m-usd').textContent=d.usd.toFixed(2);
+  document.getElementById('m-brent').textContent='$'+d.brent.toFixed(2);
+
+  document.getElementById('c-low').textContent=lo.toFixed(2)+'% нижняя';
+  document.getElementById('c-high').textContent=hi.toFixed(2)+'% верхняя';
+  document.getElementById('c-tonia').textContent='▼ TONIA '+d.tonia.toFixed(2)+'%';
+  document.getElementById('c-base').textContent='BASE '+d.rate.toFixed(2)+'%';
+  document.getElementById('t-ptr').style.cssText+='left:calc('+pct+'% - 1.5px);top:-4px;height:16px';
+  document.getElementById('b-ptr').style.cssText+='left:calc(50% - 1px);top:-4px;height:16px';
+
+  document.getElementById('upd').textContent='Обновлено: '+new Date().toLocaleTimeString('ru-RU');
+
+  document.getElementById('i-rate').value=d.rate;
+  document.getElementById('i-tonia').value=d.tonia;
+  document.getElementById('i-infl').value=d.infl;
+  document.getElementById('i-usd').value=d.usd;
+  document.getElementById('i-brent').value=d.brent;
+  document.getElementById('i-date').value=d.date;
+}
+
+async function fetchUSD(){
+  document.getElementById('t-usd-src').textContent='загружается...';
+  try{
+    const r=await fetch('https://open.er-api.com/v6/latest/USD',{signal:AbortSignal.timeout(5000)});
+    if(r.ok){
+      const j=await r.json();
+      if(j.rates&&j.rates.KZT){
+        D.usd=parseFloat(j.rates.KZT.toFixed(2));
+        render(D);
+        document.getElementById('t-usd-src').textContent='Exchange Rate API · авто';
+        document.getElementById('t-usd-sub').textContent='справочный · '+new Date().toLocaleDateString('ru-RU');
+      }
+    }
+  }catch(e){
+    document.getElementById('t-usd-src').textContent='ошибка загрузки';
+  }
+}
+
+// CHARTS
+const isDark=matchMedia('(prefers-color-scheme:dark)').matches;
+const gc=isDark?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.05)';
+const tc=isDark?'#484f58':'#afb8c1';
+
+const DATES=['02.09.15','02.10.15','02.02.16','14.03.16','05.05.16','06.06.16','11.07.16','15.08.16','03.10.16','14.11.16','09.01.17','21.02.17','11.04.17','06.06.17','18.07.17','22.08.17','09.10.17','23.11.17','16.01.18','05.03.18','16.04.18','05.06.18','10.07.18','04.09.18','16.10.18','05.12.18','15.01.19','05.03.19','16.04.19','04.06.19','16.07.19','10.09.19','29.10.19','10.12.19','04.02.20','10.03.20','17.03.20','28.04.20','06.04.20','09.06.20','21.07.20','08.09.20','27.10.20','15.12.20','26.01.21','10.03.21','27.04.21','08.06.21','27.07.21','14.09.21','26.10.21','07.12.21','25.01.22','24.02.22','10.03.22','26.04.22','07.06.22','26.07.22','06.09.22','27.10.22','06.12.22','16.01.23','27.02.23','10.04.23','29.05.23','10.07.23','28.08.23','09.10.23','27.11.23','22.01.24','26.02.24','15.04.24','03.06.24','15.07.24','02.09.24','14.10.24','02.12.24','20.01.25','11.03.25','14.04.25','09.06.25','14.07.25','02.09.25','13.10.25','01.12.25','26.01.26','10.03.26','27.04.26'];
+const RH=[12,16,17,17,15,15,13,13,12.5,12,12,11,11,10.5,10.5,10.25,10.25,10.25,9.75,9.5,9.25,9,9,9,9.25,9.25,9.25,9.25,9,9,9,9.25,9.25,9.25,9.25,12,12,9.5,9.5,9.5,9,9,9,9,9,9,9,9,9.25,9.5,9.75,9.75,10.25,13.5,13.5,14,14,14.5,14.5,16,16.75,16.75,16.75,16.75,16.75,16.75,16.5,16,15.75,15.25,14.75,14.75,14.5,14.25,14.25,14.25,15.25,15.25,16.5,16.5,16.5,16.5,16.5,18,18,18,18,18];
+const IH=[13.6,13.6,14,14,13,13,12,11,11,10,9,8.5,8,7.5,7,7.1,6.8,6.5,6,5.5,5.2,5.1,5.1,5.4,5.4,5.3,5.2,5.1,5.2,5.5,5.4,5.3,5.3,5.4,6.5,7,13,7,7,8,6.5,7,7.5,7.5,7.2,7.5,8,8.5,8.5,9,9.5,9.8,8.4,8.7,15,15,17,18,18,20,20.3,19,18,17,15,13,12,11,10,8.6,8.2,8.2,8.5,8.3,8,8.2,8.4,8.9,9.2,9.5,10,10.5,10.5,11,11,11.5,11.5,11,11,11];
+const blue=isDark?'#388bfd':'#0969da';
+const green=isDark?'#3fb950':'#1a7f37';
+const red=isDark?'#f85149':'#d1242f';
+
+new Chart(document.getElementById('mainChart'),{type:'line',data:{labels:DATES,datasets:[
+  {label:'Инфляция',data:IH,borderColor:isDark?'rgba(248,81,73,0.4)':'rgba(209,36,47,0.35)',backgroundColor:'transparent',borderWidth:1.5,borderDash:[5,4],pointRadius:0,tension:0.35,order:2},
+  {label:'Базовая ставка',data:RH,borderColor:blue,backgroundColor:isDark?'rgba(56,139,253,0.07)':'rgba(9,105,218,0.06)',borderWidth:2.5,pointRadius:0,stepped:true,fill:true,order:1}
+]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.parsed.y.toFixed(2)+'%'}}},scales:{x:{ticks:{color:tc,font:{size:8},maxTicksLimit:18,maxRotation:0},grid:{color:gc}},y:{ticks:{color:tc,font:{size:9},callback:v=>v+'%'},grid:{color:gc},min:5,max:22}}}});
+
+const YRS=['2016','2017','2018','2019','2020','2021','2022','2023','2024','2025','2026'];
+const SPR=[-0.15,-0.17,-0.14,-0.18,-0.12,-0.14,-0.12,-0.14,-0.13,-0.11,-0.03];
+new Chart(document.getElementById('sprChart'),{type:'bar',data:{labels:YRS,datasets:[{data:SPR,backgroundColor:SPR.map(v=>v>=0?(isDark?'rgba(248,81,73,0.7)':'rgba(209,36,47,0.6)'):(isDark?'rgba(63,185,80,0.7)':'rgba(26,127,55,0.6)')),borderRadius:3,barPercentage:0.75}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:tc,font:{size:9}},grid:{display:false}},y:{ticks:{color:tc,font:{size:9},callback:v=>(v>=0?'+':'')+v.toFixed(2)},grid:{color:gc}}}}});
+
+const SCL=['Май26','Июл26','Сен26','Ноя26','Янв27','Мар27','Июн27','Сен27','Дек27'];
+new Chart(document.getElementById('scChart'),{type:'line',data:{labels:SCL,datasets:[
+  {data:[18,17.5,17,16.5,16.5,16,15.5,15,15],borderColor:blue,borderWidth:2,pointRadius:2,pointBackgroundColor:blue,tension:0.3},
+  {data:[18,17,16,15,14.5,14,13,12.5,12],borderColor:green,borderWidth:1.5,borderDash:[5,3],pointRadius:2,pointBackgroundColor:green,tension:0.3},
+  {data:[18,18.5,19,19,19,18.5,18.5,18,18],borderColor:red,borderWidth:1.5,borderDash:[3,3],pointRadius:2,pointBackgroundColor:red,tension:0.3}
+]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:tc,font:{size:8}},grid:{color:gc}},y:{ticks:{color:tc,font:{size:8},callback:v=>v+'%'},grid:{color:gc},min:10,max:21}}}});
+
+function mkSpark(id,data,col){
+  new Chart(document.getElementById(id),{type:'line',data:{labels:data.map((_,i)=>i),datasets:[{data,borderColor:col,borderWidth:1.5,pointRadius:0,tension:0.4,fill:false}]},options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false}}}});
+}
+mkSpark('s1',[12,16,17,13,10.25,9.25,9,9.75,13.5,16.75,16,15.25,14.25,15.25,16.5,18],red);
+mkSpark('s2',[11.8,15.7,16.7,12.8,10.1,9.1,8.85,9.6,13.2,16.6,15.85,15.1,14.1,15.1,16.3,17.97],green);
+mkSpark('s3',[13.6,8.5,5.3,5.4,7.5,8.4,20.3,10.8,8.5,9.2,10.5,11],red);
+mkSpark('s4',[222,334,344,383,413,430,458,454,460,475,490,510,520,505,462,485.55],isDark?'#8b949e':'#636c76');
+mkSpark('s5',[54,45,54,72,64,42,71,100,83,80,72,70,68,80,99.58,96.57],isDark?'#8b949e':'#636c76');
+mkSpark('s6',[-1.4,8.5,4.1,3.8,1.5,-1.1,3.6,6.0,6.6,4.8,7.1,7],green);
+
+// HEATMAP
+const HMD=[['2016',17,14.5,13,12],['2017',12,10.5,10.25,10.25],['2018',9.75,9,9,9.25],['2019',9.25,9,9.25,9.25],['2020',10,9.5,9,9],['2021',9,9,9.5,9.75],['2022',10.25,14,14.5,16.75],['2023',16.75,16.75,16.5,15.75],['2024',15,14.5,14.25,15.25],['2025',15.25,16.5,16.5,18],['2026',18,18,null,null]];
+function hmCol(v){if(!v)return isDark?'#1c2128':'#eaeef2';if(v<=9.5)return '#0d4429';if(v<=11)return '#1a7f37';if(v<=14)return '#7d4e17';if(v<=16.5)return '#993c1d';return '#7d1e1e'}
+function hmTxt(v){if(!v)return isDark?'#30363d':'#afb8c1';if(v<=11)return '#3fb950';if(v<=14)return '#f0883e';return '#ffa198'}
+const hm=document.getElementById('hm');
+HMD.forEach(r=>{
+  const yr=document.createElement('div');yr.className='hm-yr';yr.textContent=r[0];hm.appendChild(yr);
+  r.slice(1).forEach(v=>{const c=document.createElement('div');c.className='hm-c';c.style.background=hmCol(v);c.style.color=hmTxt(v);c.textContent=v?v.toFixed(2):'—';hm.appendChild(c)});
+});
+
+render(D);
+fetchUSD();
+setInterval(fetchUSD,5*60*1000);
+</script>
+</body>
+</html>
