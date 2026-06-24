@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Мои задачи</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+
+:root{
+  --bg:#ffffff;
+  --bg2:#f6f8fa;
+  --bg3:#eaeef2;
+  --border:rgba(0,0,0,0.10);
+  --text:#1f2328;
+  --muted:#636c76;
+  --dim:#afb8c1;
+  --blue:#0969da;
+  --green:#1a7f37;
+  --red:#d1242f;
+  --amber:#9a6700;
+  --bg-blue:#ddf4ff;
+  --bg-green:#dafbe1;
+  --bg-red:#ffebe9;
+  --bg-amber:#fff8c5;
+  --shadow:0 1px 3px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.04);
+}
+
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#0d1117;
+    --bg2:#161b22;
+    --bg3:#1c2128;
+    --border:rgba(255,255,255,0.12);
+    --text:#e6edf3;
+    --muted:#8b949e;
+    --dim:#484f58;
+    --blue:#388bfd;
+    --green:#3fb950;
+    --red:#f85149;
+    --amber:#d29922;
+    --bg-blue:rgba(56,139,253,0.12);
+    --bg-green:rgba(63,185,80,0.12);
+    --bg-red:rgba(248,81,73,0.12);
+    --bg-amber:rgba(210,153,34,0.12);
+    --shadow:0 1px 3px rgba(0,0,0,0.3);
+  }
+}
+
+body{background:var(--bg2);color:var(--text);min-height:100vh;line-height:1.5;font-size:14px;-webkit-font-smoothing:antialiased}
+
+.wrap{max-width:640px;margin:0 auto;padding:20px 16px 80px}
+
+header{margin-bottom:18px}
+.title{font-size:22px;font-weight:700;letter-spacing:-0.3px;display:flex;align-items:center;gap:8px}
+.subtitle{color:var(--muted);font-size:13px;margin-top:2px}
+
+/* Stats */
+.stats{display:flex;gap:8px;margin:16px 0}
+.stat{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px;box-shadow:var(--shadow)}
+.stat-num{font-size:20px;font-weight:700;line-height:1.1}
+.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-top:2px}
+.stat.green .stat-num{color:var(--green)}
+.stat.amber .stat-num{color:var(--amber)}
+.stat.red .stat-num{color:var(--red)}
+
+.progress-wrap{margin:4px 0 16px}
+.progress-bar{height:8px;background:var(--bg3);border-radius:99px;overflow:hidden}
+.progress-fill{height:100%;background:var(--green);border-radius:99px;transition:width .35s ease}
+.progress-text{font-size:12px;color:var(--muted);margin-top:6px;text-align:right}
+
+/* Add form */
+.add-card{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:16px;box-shadow:var(--shadow)}
+.add-row{display:flex;gap:8px}
+.add-input{flex:1;border:1px solid var(--border);background:var(--bg2);color:var(--text);border-radius:8px;padding:10px 12px;font-size:15px;outline:none}
+.add-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--bg-blue)}
+.add-meta{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.add-meta input,.add-meta select{border:1px solid var(--border);background:var(--bg2);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px;outline:none}
+.add-meta input:focus,.add-meta select:focus{border-color:var(--blue)}
+.btn{border:none;border-radius:8px;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;background:var(--blue);color:#fff;transition:filter .15s;white-space:nowrap}
+.btn:hover{filter:brightness(1.08)}
+.btn:active{filter:brightness(0.95)}
+.btn-ghost{background:transparent;color:var(--muted);font-weight:500;padding:6px 10px}
+.btn-ghost:hover{background:var(--bg3);filter:none}
+
+/* Filters */
+.filters{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.chip{border:1px solid var(--border);background:var(--bg);color:var(--muted);border-radius:99px;padding:5px 12px;font-size:13px;cursor:pointer;transition:.15s}
+.chip:hover{border-color:var(--blue);color:var(--text)}
+.chip.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.chip .count{opacity:.7;margin-left:4px;font-size:11px}
+
+/* Task list */
+.list{display:flex;flex-direction:column;gap:8px}
+.task{display:flex;align-items:flex-start;gap:10px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;box-shadow:var(--shadow);transition:.15s;animation:pop .2s ease}
+@keyframes pop{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.task.overdue{border-color:var(--red)}
+.task.done{opacity:.6}
+
+.check{flex-shrink:0;width:22px;height:22px;border:2px solid var(--dim);border-radius:50%;cursor:pointer;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:.15s;background:transparent}
+.check:hover{border-color:var(--green)}
+.check.checked{background:var(--green);border-color:var(--green)}
+.check.checked::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg) translateY(-1px)}
+
+.task-body{flex:1;min-width:0}
+.task-title{font-size:15px;font-weight:500;word-break:break-word}
+.task.done .task-title{text-decoration:line-through;color:var(--muted)}
+.task-note{font-size:13px;color:var(--muted);margin-top:2px;word-break:break-word;white-space:pre-wrap}
+.task-tags{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;align-items:center}
+.tag{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:600;display:inline-flex;align-items:center;gap:3px}
+.tag.due{background:var(--bg-blue);color:var(--blue)}
+.tag.due.over{background:var(--bg-red);color:var(--red)}
+.tag.due.soon{background:var(--bg-amber);color:var(--amber)}
+.tag.prio-high{background:var(--bg-red);color:var(--red)}
+.tag.prio-med{background:var(--bg-amber);color:var(--amber)}
+.tag.prio-low{background:var(--bg3);color:var(--muted)}
+
+.task-actions{display:flex;gap:2px;flex-shrink:0}
+.icon-btn{border:none;background:transparent;color:var(--dim);cursor:pointer;padding:4px;border-radius:6px;font-size:15px;line-height:1;transition:.15s}
+.icon-btn:hover{background:var(--bg3);color:var(--text)}
+.icon-btn.del:hover{color:var(--red)}
+
+.empty{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty-icon{font-size:40px;margin-bottom:8px;opacity:.5}
+
+/* Notification banner */
+.banner{background:var(--bg-amber);border:1px solid var(--amber);color:var(--amber);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.banner button{border:1px solid var(--amber);background:transparent;color:var(--amber);border-radius:6px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer}
+.banner.hidden{display:none}
+
+footer{text-align:center;color:var(--dim);font-size:12px;margin-top:28px}
+
+@media(max-width:480px){
+  .stat-num{font-size:18px}
+  .add-row{flex-direction:column}
+  .add-meta input,.add-meta select{flex:1}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="title">✅ Мои задачи</div>
+    <div class="subtitle">Простой трекер дел с напоминаниями</div>
+  </header>
+
+  <div id="banner" class="banner hidden">
+    <span>🔔 Разрешите уведомления, чтобы получать напоминания о задачах.</span>
+    <button id="enableNotif">Включить</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-num" id="statTotal">0</div><div class="stat-label">Всего</div></div>
+    <div class="stat amber"><div class="stat-num" id="statActive">0</div><div class="stat-label">Активные</div></div>
+    <div class="stat green"><div class="stat-num" id="statDone">0</div><div class="stat-label">Готово</div></div>
+    <div class="stat red"><div class="stat-num" id="statOver">0</div><div class="stat-label">Просрочено</div></div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="progFill" style="width:0%"></div></div>
+    <div class="progress-text" id="progText">Нет задач</div>
+  </div>
+
+  <div class="add-card">
+    <div class="add-row">
+      <input id="newTitle" class="add-input" placeholder="Новая задача… (Enter — добавить)" autocomplete="off">
+      <button class="btn" id="addBtn">Добавить</button>
+    </div>
+    <div class="add-meta">
+      <input id="newNote" class="add-input" style="flex:1;min-width:140px;font-size:13px;padding:8px 10px" placeholder="Заметка (необязательно)" autocomplete="off">
+      <input id="newDue" type="datetime-local" title="Срок и напоминание">
+      <select id="newPrio" title="Приоритет">
+        <option value="low">Низкий</option>
+        <option value="med" selected>Средний</option>
+        <option value="high">Высокий</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="filters" id="filters">
+    <button class="chip active" data-filter="all">Все <span class="count" id="cAll">0</span></button>
+    <button class="chip" data-filter="active">Активные <span class="count" id="cActive">0</span></button>
+    <button class="chip" data-filter="today">Сегодня <span class="count" id="cToday">0</span></button>
+    <button class="chip" data-filter="overdue">Просроченные <span class="count" id="cOver">0</span></button>
+    <button class="chip" data-filter="done">Готово <span class="count" id="cDone">0</span></button>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <div id="clearDone" style="text-align:center;margin-top:14px;display:none">
+    <button class="btn-ghost" id="clearDoneBtn">🗑 Очистить выполненные</button>
+  </div>
+
+  <footer>Данные хранятся только в этом браузере · Работает офлайн</footer>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  const STORE_KEY = 'personal-tasks-v1';
+  let tasks = [];
+  let filter = 'all';
+  const notified = new Set();
+
+  // ---- persistence ----
+  function load(){
+    try{ tasks = JSON.parse(localStorage.getItem(STORE_KEY)) || []; }
+    catch(e){ tasks = []; }
+  }
+  function save(){
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(tasks)); }catch(e){}
+  }
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  // ---- helpers ----
+  const $ = id => document.getElementById(id);
+
+  function startOfDay(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
+  function isSameDay(a,b){ return startOfDay(a).getTime() === startOfDay(b).getTime(); }
+
+  function fmtDue(ts){
+    const d = new Date(ts), now = new Date();
+    const opts = {hour:'2-digit', minute:'2-digit'};
+    const time = d.toLocaleTimeString('ru-RU', opts);
+    if(isSameDay(d, now)) return 'Сегодня ' + time;
+    const tomorrow = new Date(now); tomorrow.setDate(now.getDate()+1);
+    if(isSameDay(d, tomorrow)) return 'Завтра ' + time;
+    const yesterday = new Date(now); yesterday.setDate(now.getDate()-1);
+    if(isSameDay(d, yesterday)) return 'Вчера ' + time;
+    return d.toLocaleDateString('ru-RU', {day:'2-digit', month:'short'}) + ' ' + time;
+  }
+
+  function dueState(t){
+    if(!t.due || t.done) return '';
+    const diff = t.due - Date.now();
+    if(diff < 0) return 'over';
+    if(diff < 3600*1000*24) return 'soon';
+    return '';
+  }
+
+  const PRIO = {
+    high:{label:'Высокий', cls:'prio-high', icon:'🔴'},
+    med:{label:'Средний', cls:'prio-med', icon:'🟡'},
+    low:{label:'Низкий', cls:'prio-low', icon:'⚪'}
+  };
+  const PRIO_ORDER = {high:0, med:1, low:2};
+
+  // ---- rendering ----
+  function matchesFilter(t){
+    const now = Date.now();
+    switch(filter){
+      case 'active': return !t.done;
+      case 'done': return t.done;
+      case 'today': return !t.done && t.due && isSameDay(t.due, now);
+      case 'overdue': return !t.done && t.due && t.due < now;
+      default: return true;
+    }
+  }
+
+  function sortTasks(arr){
+    return arr.slice().sort((a,b)=>{
+      if(a.done !== b.done) return a.done ? 1 : -1;       // active first
+      const ad = a.due || Infinity, bd = b.due || Infinity;
+      if(ad !== bd) return ad - bd;                        // earliest due first
+      const ap = PRIO_ORDER[a.prio]||1, bp = PRIO_ORDER[b.prio]||1;
+      if(ap !== bp) return ap - bp;                        // higher prio first
+      return b.created - a.created;
+    });
+  }
+
+  function esc(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  function render(){
+    const list = $('list');
+    list.innerHTML = '';
+    const visible = sortTasks(tasks.filter(matchesFilter));
+
+    if(visible.length === 0){
+      const msgs = {
+        all:'Пока нет задач. Добавьте первую! 👆',
+        active:'Нет активных задач 🎉',
+        today:'На сегодня задач нет 😌',
+        overdue:'Просроченных задач нет 👍',
+        done:'Ещё ничего не выполнено'
+      };
+      list.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>'+(msgs[filter]||msgs.all)+'</div>';
+    }
+
+    for(const t of visible){
+      const ds = dueState(t);
+      const el = document.createElement('div');
+      el.className = 'task' + (t.done?' done':'') + (ds==='over'?' overdue':'');
+
+      let tags = '';
+      if(t.due){
+        tags += '<span class="tag due '+ds+'">🕑 '+esc(fmtDue(t.due))+'</span>';
+      }
+      const p = PRIO[t.prio] || PRIO.med;
+      if(t.prio === 'high') tags += '<span class="tag '+p.cls+'">'+p.icon+' '+p.label+'</span>';
+
+      el.innerHTML =
+        '<div class="check'+(t.done?' checked':'')+'" data-act="toggle" data-id="'+t.id+'" title="Отметить"></div>'+
+        '<div class="task-body">'+
+          '<div class="task-title">'+esc(t.title)+'</div>'+
+          (t.note?'<div class="task-note">'+esc(t.note)+'</div>':'')+
+          (tags?'<div class="task-tags">'+tags+'</div>':'')+
+        '</div>'+
+        '<div class="task-actions">'+
+          '<button class="icon-btn" data-act="edit" data-id="'+t.id+'" title="Изменить">✏️</button>'+
+          '<button class="icon-btn del" data-act="del" data-id="'+t.id+'" title="Удалить">🗑</button>'+
+        '</div>';
+      list.appendChild(el);
+    }
+    updateStats();
+  }
+
+  function updateStats(){
+    const now = Date.now();
+    const total = tasks.length;
+    const done = tasks.filter(t=>t.done).length;
+    const active = total - done;
+    const over = tasks.filter(t=>!t.done && t.due && t.due < now).length;
+    const today = tasks.filter(t=>!t.done && t.due && isSameDay(t.due, now)).length;
+
+    $('statTotal').textContent = total;
+    $('statActive').textContent = active;
+    $('statDone').textContent = done;
+    $('statOver').textContent = over;
+
+    $('cAll').textContent = total;
+    $('cActive').textContent = active;
+    $('cToday').textContent = today;
+    $('cOver').textContent = over;
+    $('cDone').textContent = done;
+
+    const pct = total ? Math.round(done/total*100) : 0;
+    $('progFill').style.width = pct + '%';
+    $('progText').textContent = total ? (done+' из '+total+' выполнено · '+pct+'%') : 'Нет задач';
+
+    $('clearDone').style.display = done > 0 ? 'block' : 'none';
+  }
+
+  // ---- actions ----
+  function addTask(){
+    const title = $('newTitle').value.trim();
+    if(!title) return;
+    const dueVal = $('newDue').value;
+    tasks.push({
+      id: uid(),
+      title,
+      note: $('newNote').value.trim(),
+      due: dueVal ? new Date(dueVal).getTime() : null,
+      prio: $('newPrio').value,
+      done: false,
+      created: Date.now()
+    });
+    $('newTitle').value = '';
+    $('newNote').value = '';
+    $('newDue').value = '';
+    $('newPrio').value = 'med';
+    save(); render();
+    $('newTitle').focus();
+  }
+
+  function toggle(id){
+    const t = tasks.find(x=>x.id===id);
+    if(t){ t.done = !t.done; if(t.done) notified.add(id); save(); render(); }
+  }
+  function del(id){
+    tasks = tasks.filter(x=>x.id!==id);
+    save(); render();
+  }
+  function edit(id){
+    const t = tasks.find(x=>x.id===id);
+    if(!t) return;
+    const nt = prompt('Изменить задачу:', t.title);
+    if(nt === null) return;
+    if(nt.trim()) t.title = nt.trim();
+    save(); render();
+  }
+
+  // ---- reminders ----
+  function updateBanner(){
+    const b = $('banner');
+    if(!('Notification' in window)){ b.classList.add('hidden'); return; }
+    if(Notification.permission === 'default') b.classList.remove('hidden');
+    else b.classList.add('hidden');
+  }
+
+  function checkReminders(){
+    if(!('Notification' in window) || Notification.permission !== 'granted') return;
+    const now = Date.now();
+    for(const t of tasks){
+      if(t.done || !t.due || notified.has(t.id)) continue;
+      // notify when due time reached (within last 2 minutes window to avoid spamming old ones on load)
+      if(t.due <= now && now - t.due < 2*60*1000){
+        try{
+          new Notification('🔔 Напоминание о задаче', {
+            body: t.title + (t.note ? '\n'+t.note : ''),
+            tag: t.id
+          });
+        }catch(e){}
+        notified.add(t.id);
+      } else if(t.due <= now){
+        notified.add(t.id); // mark old overdue as already seen
+      }
+    }
+  }
+
+  // ---- events ----
+  $('addBtn').addEventListener('click', addTask);
+  $('newTitle').addEventListener('keydown', e=>{ if(e.key==='Enter') addTask(); });
+  $('newNote').addEventListener('keydown', e=>{ if(e.key==='Enter') addTask(); });
+
+  $('list').addEventListener('click', e=>{
+    const btn = e.target.closest('[data-act]');
+    if(!btn) return;
+    const id = btn.dataset.id, act = btn.dataset.act;
+    if(act==='toggle') toggle(id);
+    else if(act==='del') del(id);
+    else if(act==='edit') edit(id);
+  });
+
+  $('filters').addEventListener('click', e=>{
+    const chip = e.target.closest('.chip');
+    if(!chip) return;
+    filter = chip.dataset.filter;
+    document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('active', c===chip));
+    render();
+  });
+
+  $('clearDoneBtn').addEventListener('click', ()=>{
+    if(confirm('Удалить все выполненные задачи?')){
+      tasks = tasks.filter(t=>!t.done);
+      save(); render();
+    }
+  });
+
+  $('enableNotif').addEventListener('click', ()=>{
+    if('Notification' in window){
+      Notification.requestPermission().then(()=>{ updateBanner(); });
+    }
+  });
+
+  // ---- init ----
+  load();
+  // mark already-overdue tasks as seen so we don't spam on first load
+  const nowInit = Date.now();
+  tasks.forEach(t=>{ if(t.due && t.due <= nowInit) notified.add(t.id); });
+  render();
+  updateBanner();
+  setInterval(()=>{ checkReminders(); render(); }, 30000); // refresh due labels + reminders
+})();
+</script>
+</body>
+</html>
